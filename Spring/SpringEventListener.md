@@ -134,7 +134,7 @@ if문 첫번째에서 보이듯 별도의 `Bean` 등록을 통해 Custom한 등�
 
 위까지의 내용을 도식도로 그려본다면 아래와 같이 동작한다고 이해할 수 있다.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/17ff1a71-85be-49d4-b1d6-0bee4bcbf1b1/Untitled.png)
+![image](https://github.com/Eom-Ti/TIL/assets/71249347/1c29e857-a9d9-47ce-b4c8-d3f627769654)
 
 ### Event Listener 등록
 
