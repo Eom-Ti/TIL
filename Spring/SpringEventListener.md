@@ -305,3 +305,168 @@ protected Collection<ApplicationListener<?>> getApplicationListeners(Application
         String id = ann != null ? ann.id() : "";
         this.listenerId = !id.isEmpty() ? id : null;
 ```
+### 실제 이벤트가 발행되었을 때의 동작원리
+
+지금 까지 이벤트 Publish의 방법과 Listener의 Bean 등록까지를 알아봤다. 그렇다면 어떻게 많은 Event 중 자신의 타입에 맞는 Event가 발생할 때 consume이 실행되는지 알아보자.
+
+`Publish` 때로 돌아가서 `SimpleApplicationEventMulticaster` 부터 살펴보자. 제일 먼저 볼 곳은 `multicastEvent` 이다.
+
+```java
+    public void multicastEvent(ApplicationEvent event, @Nullable ResolvableType eventType) {
+        ResolvableType type = eventType != null ? eventType : ResolvableType.forInstance(event);
+        Executor executor = this.getTaskExecutor();
+        Iterator var5 = this.getApplicationListeners(event, type).iterator();
+
+        while(true) {
+            while(var5.hasNext()) {
+                ApplicationListener<?> listener = (ApplicationListener)var5.next();
+                if (executor != null && listener.supportsAsyncExecution()) {
+                    try {
+                        executor.execute(() -> {
+                            this.invokeListener(listener, event);
+                        });
+                    } catch (RejectedExecutionException var8) {
+                        this.invokeListener(listener, event);
+                    }
+                } else {
+                    this.invokeListener(listener, event);
+                }
+            }
+
+            return;
+        }
+    }
+```
+
+`invokeListener` 를 살펴보도록 한다.
+
+```java
+    protected void invokeListener(ApplicationListener<?> listener, ApplicationEvent event) {
+        ErrorHandler errorHandler = this.getErrorHandler();
+        if (errorHandler != null) {
+            try {
+                this.doInvokeListener(listener, event);
+            } catch (Throwable var5) {
+                Throwable err = var5;
+                errorHandler.handleError(err);
+            }
+        } else {
+            this.doInvokeListener(listener, event);
+        }
+
+    }
+
+```
+
+에러에 대한 핸들링 부분을 볼 수 있다.  기본전략은 아무것도 없어서 커스텀을 통해 등록할 순 있다.
+
+이후 `doInvokeListener` 메소드를 살펴보자. 이부분에서 `listener.onApplicationEvent` 를 확인할 수 있다.
+
+```java
+    private void doInvokeListener(ApplicationListener listener, ApplicationEvent event) {
+        try {
+            listener.onApplicationEvent(event);
+        } catch (ClassCastException var7) {
+            ClassCastException ex = var7;
+            String msg = ex.getMessage();
+            if (msg != null && !this.matchesClassCastMessage(msg, event.getClass())) {
+                label38: {
+                    if (event instanceof PayloadApplicationEvent) {
+                        PayloadApplicationEvent payloadEvent = (PayloadApplicationEvent)event;
+                        if (this.matchesClassCastMessage(msg, payloadEvent.getPayload().getClass())) {
+                            break label38;
+                        }
+```
+
+```java
+@FunctionalInterface
+public interface ApplicationListener<E extends ApplicationEvent> extends EventListener {
+    void onApplicationEvent(E event);
+
+    default boolean supportsAsyncExecution() {
+        return true;
+    }
+
+    static <T> ApplicationListener<PayloadApplicationEvent<T>> forPayload(Consumer<T> consumer) {
+        return (event) -> {
+            consumer.accept(event.getPayload());
+        };
+    }
+}
+```
+
+그렇다면 아까 Listener를 Bean 등록할때 보았던 `ApplicationListenerMethodAdapter` 를 살펴보자.
+
+```java
+    public void processEvent(ApplicationEvent event) {
+        Object[] args = this.resolveArguments(event);
+        if (this.shouldHandle(event, args)) {
+            Object result = this.doInvoke(args);
+            if (result != null) {
+                this.handleResult(result);
+            } else {
+                this.logger.trace("No result object given - no result to handle");
+            }
+        }
+
+    }
+```
+
+실제 실행되는 부분이다. `resolveArguments` 를 좀더 알아보자.
+
+```java
+    protected Object[] resolveArguments(ApplicationEvent event) {
+        ResolvableType declaredEventType = this.getResolvableType(event);
+        if (declaredEventType == null) {
+            return null;
+        } else if (this.method.getParameterCount() == 0) {
+            return new Object[0];
+        } else {
+            Class<?> declaredEventClass = declaredEventType.toClass();
+            if (!ApplicationEvent.class.isAssignableFrom(declaredEventClass) && event instanceof PayloadApplicationEvent) {
+                PayloadApplicationEvent<?> payloadEvent = (PayloadApplicationEvent)event;
+                Object payload = payloadEvent.getPayload();
+                if (declaredEventClass.isInstance(payload)) {
+                    return new Object[]{payload};
+                }
+            }
+
+            return new Object[]{event};
+        }
+    }
+```
+
+```java
+    private boolean shouldHandle(ApplicationEvent event, @Nullable Object[] args) {
+        if (args == null) {
+            return false;
+        } else {
+            String condition = this.getCondition();
+            if (StringUtils.hasText(condition)) {
+                Assert.notNull(this.evaluator, "EventExpressionEvaluator must not be null");
+                return this.evaluator.condition(condition, event, this.targetMethod, this.methodKey, args);
+            } else {
+                return true;
+            }
+        }
+    }
+```
+
+우선 해당 메소드의 파라미터 정보를 불러와 0인지 아닌지를 체크한다. 이후 0이 아니라면 해당 `payload` 를 반환하고 최종적으로 Handle해야할 `Condition` 이있는지 체크한다.
+
+이후 `processEvent` 메소드의 `this.doInvoke(args)` 를 통해 해당 이벤트를 실행한다.
+
+```java
+    @Nullable
+    protected Object doInvoke(@Nullable Object... args) {
+        Object bean = this.getTargetBean();
+        if (bean.equals((Object)null)) {
+            return null;
+        } else {
+            ReflectionUtils.makeAccessible(this.method);
+
+            try {
+	            return KotlinDetector.isSuspendingFunction(this.method) ? CoroutinesUtils.invokeSuspendingFunction(this.method, bean, args) : this.method.invoke(bean, args);
+```
+
+해당 메소드에선 ReflectionUtils 를 통해 실행가능하도록 허용을 한 이후 Java 라면 `this.method.invoke(bean, args)` 를 통해 메소드를 실행한다.
