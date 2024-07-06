@@ -255,4 +255,53 @@ protected Collection<ApplicationListener<?>> getApplicationListeners(Application
 
 `EventListenerFactory` bean type을 찾는다. 이때 기본적으로 `DefaultEventListenerFactory` 를 사용한다.
 
-이후 `finishBeanFactoryInitialization` 메소드를 통해 실행이 이어지며,
+이후 `finishBeanFactoryInitialization` 메소드를 통해 실행이 이어지며, `beanFactory.preInstantiateSingletons` 메소드를 거쳐 `afterSingletonsInstantiated` 메소드를 실행한다.
+
+```java
+        while(var2.hasNext()) {
+            beanName = (String)var2.next();
+            Object singletonInstance = this.getSingleton(beanName);
+            if (singletonInstance instanceof SmartInitializingSingleton smartSingleton) {
+                StartupStep smartInitialize = this.getApplicationStartup().start("spring.beans.smart-initialize").tag("beanName", beanName);
+                smartSingleton.afterSingletonsInstantiated();
+                smartInitialize.end();
+            }
+        }
+
+```
+
+해당 메소드를 구현하고 있는 `EventListenerMethodProcessor` Class의 `processBean`를 살펴보면
+
+```java
+                while(true) {
+                    while(var6.hasNext()) {
+                        Method method = (Method)var6.next();
+                        Iterator var8 = factories.iterator();
+
+                        while(var8.hasNext()) {
+                            EventListenerFactory factory = (EventListenerFactory)var8.next();
+                            if (factory.supportsMethod(method)) {
+                                Method methodToUse = AopUtils.selectInvocableMethod(method, context.getType(beanName));
+                                ApplicationListener<?> applicationListener = factory.createApplicationListener(beanName, targetType, methodToUse);
+                                if (applicationListener instanceof ApplicationListenerMethodAdapter) {
+                                    ApplicationListenerMethodAdapter alma = (ApplicationListenerMethodAdapter)applicationListener;
+                                    alma.init(context, this.evaluator);
+                                }
+
+```
+
+`createApplicationListener` 를 통해  리스너를 생성하며 `@EventListener 타입의 Bean인 경우` 구현체인 `ApplicationListenerMethodAdapter` 를 통해  `ApplicationContext` 에 주입된다.
+
+```java
+    public ApplicationListenerMethodAdapter(String beanName, Class<?> targetClass, Method method) {
+        this.beanName = beanName;
+        this.method = BridgeMethodResolver.findBridgedMethod(method);
+        this.targetMethod = !Proxy.isProxyClass(targetClass) ? AopUtils.getMostSpecificMethod(method, targetClass) : this.method;
+        this.methodKey = new AnnotatedElementKey(this.targetMethod, targetClass);
+        EventListener ann = (EventListener)AnnotatedElementUtils.findMergedAnnotation(this.targetMethod, EventListener.class);
+        this.declaredEventTypes = resolveDeclaredEventTypes(method, ann);
+        this.condition = ann != null ? ann.condition() : null;
+        this.order = resolveOrder(this.targetMethod);
+        String id = ann != null ? ann.id() : "";
+        this.listenerId = !id.isEmpty() ? id : null;
+```
