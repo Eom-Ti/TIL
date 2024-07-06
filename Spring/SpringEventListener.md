@@ -470,3 +470,25 @@ public interface ApplicationListener<E extends ApplicationEvent> extends EventLi
 ```
 
 해당 메소드에선 ReflectionUtils 를 통해 실행가능하도록 허용을 한 이후 Java 라면 `this.method.invoke(bean, args)` 를 통해 메소드를 실행한다.
+
+간단하게 위의 내용들을 정리하면 아래와 같다.
+
+**[Publish]**
+
+Spring 4.2 버전 기준으로 이전의 경우 `ApplicationEvent` 를 상속받아 구현해야 했지만 4.2 버전부턴 `ApplicationEventPublisher` 를 주입받아 이벤트 발행이 가능해졌다. 해당 인터페이스의 구현체는 `AbstractApplicationContext`로 publish를 진행한다.
+
+이때 기본적으로 설정을 따로 하지 않는다면 `SimpleApplicationEventMulticaster` 를 등록하며, 이름에서 볼 수 있듯이 기본적으로 멀티케스트 방식의 이벤트 발행이 진행된다.(이는 해당 타입의 Listener들 모두가 동작할 수 있음을 말한다.)
+
+**[Listener bean 등록]**
+
+Listener의 경우 마찬가지로 4.2 버전을 기준으로 이전의 경우 `ApplicationListener` 를 상속받아야 했지만 4.2 버전부턴 `@EventListenr` 를 통해 bean 등록이 가능하다.
+
+ApplicationContext refresh() 단계에서 부터 시작하며, 해당 어노테이션을 사용한 메소드를 Bean 등록하며, `ApplicationListenerMethodAdapter` 에 의해 `ApplicationContext`에 bean 등록된다.
+
+**[EventListener 동작방식]**
+
+다시 `AbstractApplicationContext` 로 돌아와 publish가 되면, `SimpleApplicationEventMulticaster` 를 통해 우선 캐시에서 cahceKey를 통해 리스너가 있는지 확인한다. 만일 있을 경우 Listener Collection을 받아와 iterator를 수행하며 invoke를 실행한다. 없을경우 `ApplicationListenerMethodAdapter` 를통해 `Annotaion`으로 등록된 EventBean을 찾아 해당 값을 캐시에 넣는다
+
+이후 `ApplicationListenerMethodAdapter` 를 통해 해당 메소드의 파라미터가 0인지를 체크하고 별도의 condition을 체크해야하는지 확인한 후에, `doInvoke` 메소드를 수행한다.
+
+이후 해당 Event를 캐시에 넣는다. 다음 호출부턴 위의 과정 없이 캐시에서 사용이 가능하다. 다만 `ApplicationListenerMethodAdapter` 을 통한 파라미터 혹은 condition 체크는 이벤트 발생시마다 확인한다.
