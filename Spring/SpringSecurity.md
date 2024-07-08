@@ -32,3 +32,63 @@ Spring Security는 Spring의 하위 프레임워크로 개발자가 쉽게 확�
 쉽게 말해 `Dispatcher Servlet`에 요청이 전달 되기 `전/후 과정`에서 **부가적인** 작업을 처리하는 객체이다.
 
 이러한 `Filter`는 공통된 보안 및 인증/인가 관련 작업에 주로 사용되거나, 모든 요청에 대한 로깅 또는 감사등에 많이 쓰이고 있다. 즉 `스프링과 무관하게 전역적으로 처리해야 하는 작업`에 대한 처리를 담당하는 객체이다.
+## Servlet & Security **Architecture**
+
+위에서 `Filter`에 대해 알아본것 처럼 Filter는 Web Context(Servlet Container) 에서 동작하며, `DispatcherServlet` 에 요청이 전달 되기 `전/후` 과정에서 동작한다.
+
+이 말은 서블릿 컨테이너의 경우 자체 표준을 사용하여 필터 인스턴스를 등록할 수 있지만, `Spring` 에서 정의한 `Bean` 은 인식하지 못함을 의미한다.
+
+### DelegatingFilterProxy
+
+따라서 Spring에서 정의된 Bean을 사용하기 위해선 중간 다리가 필요하며, 이를 담당하는 것이 `DelegatingFilterProxy` 이다.
+
+이를 통해 Spring `ApplicationContext` 에 등록된 실제 Filter Bean을 탐색하여 요청을 해당 Bean에 위임하여 처리가 가능하다. 이후 처리된 결과는 다시 `Filter Chain`을 통해 `Servlet Container`로 돌아온다.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/c67fc9c2-c763-4d09-8f40-8e69453d970e/Untitled.png)
+
+```kotlin
+fun doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain) {
+	val delegate: Filter = getFilterBean(someBeanName) 
+	delegate.doFilter(request, response) 
+}
+```
+
+실제 Servlet Container의 경우 애플리케이션 시작 시 `Filter` 를 등록해야 한다. 그러나 Spring의 `ApplicationContext` 는 그보다 더 늦게 초기화가 진행된다.
+
+위의 설명 대로라면 실제 `DelegatingFilterProxy` 에서 Spring Filter Bean에게 위임하는 것이 불가능 해보일 수 있다. 하지만, `DelegatingFilterProxy` 는 `Filter` 등록 시점을 **지연시켜 이를 해결**한다. 즉 첫 요청이 들어올 때까지 Spring Bean을 조회하지 않아도 되기 때문에 `ApplicationContext` 가 초기화 된 후에 사용이 가능하다.
+
+DelegatigFilterProxy를 통해 Spring Filter Bean에 위임할 수 있는거 까진 확인 했다. 그럼 어떤 방식으로 `Spring Security`는 동작하는지 알아보자.
+
+### FilterChainProxy
+
+`DelegatingFilterProxy` 는 위의 설명처럼 Spring Filter Bean에 작업을 위임할 수 있다. 이때 `FilterChainProxy` 를 통해 위임하며, 해당 필터는 `Srping Security` 에서 제공하는 필터로 여러 보안 관련 필터 인스턴스를 `SecurityFilterChain` 을 통해 관리하고 요청이 들어오면 적절한 Filter Chain을 통해 위임한다.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/622cc38a-38a1-4a1b-a9e8-29f9fcc68c45/Untitled.png)
+
+이때 `SecurityFilterChain` 은 현재 요청에 대해 호출해야 하는 Spring 보안 필터 인스턴스를 결정하기 위해 `FilterChainProxy`에서 사용된다.
+
+### SecurityFilterChain
+
+SecurityFilterChain의 보안 필터는 일반적으로 `Srpring Bean` 이며, `FilterChainProxy`에 등록된다.
+
+이를 통해 `Spring Security`의 모든 서블릿 지원을 위한 시작점을 제공하며, `HttpFirewall` 적용, 또한 URL만을 기반으로 호출되던 `Servlet  Context의 Filter` 와 다르게 `HttpServletRequest` 의 모든 것을 기반으로 호출을 결정할 수 있다.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/345f6dd1-9219-4ad0-bc59-a14175a8b8ab/Untitled.png)
+
+이때 위의 도식표처럼 여러개의 `SecurityFilterChain`이 등록되어 있을 때 만일 `api/messages` 라는 URL이 요청되면, `SecurityFilterChain0` 의 조건에 먼저 일치하기 때문에 `SecurityFilterChainn` 에서 일치하더라도 `0` 만 호출된다.  반대로 `/message` URL 형식이라면  `n` 외엔 일치하는 `FilterChain`이 없기 때문에 `n` 이 호출된다.
+
+또한 각 `SecurityFilterChain` 마다 보안 필터 인스턴스를 각각 구성할 수 있으며, 만일 특정 요청을 무시하도록 하려는 경우 보안 필터 인스턴스가 `0개` 가 있을 수도 있다.
+
+### Security Filters
+
+`Security Filter`는 `SecurityFilterChain` 을 통해 `FilterChainProxy` 에 삽입된다. 이러한 `Security Filter` 는 `Authentication(인증)` , `Authorization(인가)` 등 다양한 용도로 사용할 수 있다.
+
+이러한 `Security Filter` 는 특정 순서로 실행되어 적시에 호출되는 것을 보장한다. 예를 들어 인증을 수행하는 필터는 인가를 수행하는 필터보다 먼저 호출된다. 일반적으로 이 순서를 알 필요는 없으나, 필요한 경우가 있다. 이는 아래의 링크를 통해 확인이 가능하다.
+
+https://github.com/spring-projects/spring-security/blob/6.3.1/config/src/main/java/org/springframework/security/config/annotation/web/builders/FilterOrderRegistration.java
+
+지금 까지 기본적인 Filter 부터 Servlet Filter 그리고 이를 Spring Security Filter 와는 어떻게 활용하는지를 알아 봤다 최종적으로 도식화 한다면 아래와 같을 것이다.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/b6aa6688-5203-4f60-9ac4-aab4569ab07f/Untitled.png)
+
+##
