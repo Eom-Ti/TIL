@@ -121,9 +121,9 @@ class SecurityConfig {
 }
 ```
 
-<aside>
+``` text
 ⚠️ IDE가 자동으로 import를 해주지 않아 `org.springframework.security.config.annotation.web.invoke` 를 별도로 import 해서 사용이 필요하다.
-</aside>
+```
 
 간단 하게 위에 대해 설명하자면 현재 해당 프로젝트는 `rest api` 를 이용한 서버로 Session을 사용하지 않는 stateless 한 인증 방식으로 `JWT` 를 사용할 예정이기에 별도로 작성할 필요가 없다. 마찬가지로 `httpBasic` 과 `formLogin` 또한 동일하며, `stateless` 하기에 Session을 사용하지 않는다.
 
