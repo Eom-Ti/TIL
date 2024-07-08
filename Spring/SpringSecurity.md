@@ -89,6 +89,6 @@ https://github.com/spring-projects/spring-security/blob/6.3.1/config/src/main/ja
 
 지금 까지 기본적인 Filter 부터 Servlet Filter 그리고 이를 Spring Security Filter 와는 어떻게 활용하는지를 알아 봤다 최종적으로 도식화 한다면 아래와 같을 것이다.
 
-![image](https://github.com/Eom-Ti/TIL/assets/71249347/a0d77228-837b-4c6a-a86c-5187fec12b29)
+![image](https://github.com/Eom-Ti/TIL/assets/71249347/560fad15-a9ba-4db7-b641-2a2da7259c98)
 
 ##
