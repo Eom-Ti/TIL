@@ -90,5 +90,41 @@ https://github.com/spring-projects/spring-security/blob/6.3.1/config/src/main/ja
 지금 까지 기본적인 Filter 부터 Servlet Filter 그리고 이를 Spring Security Filter 와는 어떻게 활용하는지를 알아 봤다 최종적으로 도식화 한다면 아래와 같을 것이다.
 
 ![image](https://github.com/Eom-Ti/TIL/assets/71249347/a0d77228-837b-4c6a-a86c-5187fec12b29)
+### Security 설정
+
+기본적인 Spring Security 를 활용하여 JWT 토큰 인증 까지의 과정을 간단하게 프로젝트로 진행해 볼 예정이다. 다만 여기서 프로젝트는 `Kotlin` 기반으로 작성되어 있으며, `Java` 의 경우 설정 단계 까지만 작성하고 이후 구현은 따로 작성하지 않을 예정이다.
+
+현재는 우선 Spring Security를 적용 하는 단계 까지만 알아볼 예정이다.
+
+```kotlin
+implementation("org.springframework.boot:spring-boot-starter-security")
+```
+
+```kotlin
+@Configuration
+@EnableWebSecurity
+class SecurityConfig {
+
+    @Bean
+    fun filerChain(http: HttpSecurity): SecurityFilterChain {
+        http {
+            csrf { disable() }
+            httpBasic { disable() }
+            formLogin { disable() }
+            sessionManagement { sessionCreationPolicy = SessionCreationPolicy.NEVER }
+            authorizeRequests {
+                authorize(anyRequest, authenticated)
+            }
+        }
+        return http.build()
+    }
+}
+```
+
+<aside>
+⚠️ IDE가 자동으로 import를 해주지 않아 `org.springframework.security.config.annotation.web.invoke` 를 별도로 import 해서 사용이 필요하다.
+</aside>
+
+간단 하게 위에 대해 설명하자면 현재 해당 프로젝트는 `rest api` 를 이용한 서버로 Session을 사용하지 않는 stateless 한 인증 방식으로 `JWT` 를 사용할 예정이기에 별도로 작성할 필요가 없다. 마찬가지로 `httpBasic` 과 `formLogin` 또한 동일하며, `stateless` 하기에 Session을 사용하지 않는다.
 
 ##
