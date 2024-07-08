@@ -44,7 +44,7 @@ Spring Security는 Spring의 하위 프레임워크로 개발자가 쉽게 확�
 
 이를 통해 Spring `ApplicationContext` 에 등록된 실제 Filter Bean을 탐색하여 요청을 해당 Bean에 위임하여 처리가 가능하다. 이후 처리된 결과는 다시 `Filter Chain`을 통해 `Servlet Container`로 돌아온다.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/c67fc9c2-c763-4d09-8f40-8e69453d970e/Untitled.png)
+![image](https://github.com/Eom-Ti/TIL/assets/71249347/4a20914a-3749-4bfd-bebd-20c66e510d09)
 
 ```kotlin
 fun doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain) {
@@ -63,7 +63,7 @@ DelegatigFilterProxy를 통해 Spring Filter Bean에 위임할 수 있는거 까
 
 `DelegatingFilterProxy` 는 위의 설명처럼 Spring Filter Bean에 작업을 위임할 수 있다. 이때 `FilterChainProxy` 를 통해 위임하며, 해당 필터는 `Srping Security` 에서 제공하는 필터로 여러 보안 관련 필터 인스턴스를 `SecurityFilterChain` 을 통해 관리하고 요청이 들어오면 적절한 Filter Chain을 통해 위임한다.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/622cc38a-38a1-4a1b-a9e8-29f9fcc68c45/Untitled.png)
+![image](https://github.com/Eom-Ti/TIL/assets/71249347/bef52527-a163-4083-9316-12ec82a9faa2)
 
 이때 `SecurityFilterChain` 은 현재 요청에 대해 호출해야 하는 Spring 보안 필터 인스턴스를 결정하기 위해 `FilterChainProxy`에서 사용된다.
 
@@ -73,7 +73,7 @@ SecurityFilterChain의 보안 필터는 일반적으로 `Srpring Bean` 이며, `
 
 이를 통해 `Spring Security`의 모든 서블릿 지원을 위한 시작점을 제공하며, `HttpFirewall` 적용, 또한 URL만을 기반으로 호출되던 `Servlet  Context의 Filter` 와 다르게 `HttpServletRequest` 의 모든 것을 기반으로 호출을 결정할 수 있다.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/345f6dd1-9219-4ad0-bc59-a14175a8b8ab/Untitled.png)
+![image](https://github.com/Eom-Ti/TIL/assets/71249347/1848134e-f0c4-4842-bd3c-cb7507a1e247)
 
 이때 위의 도식표처럼 여러개의 `SecurityFilterChain`이 등록되어 있을 때 만일 `api/messages` 라는 URL이 요청되면, `SecurityFilterChain0` 의 조건에 먼저 일치하기 때문에 `SecurityFilterChainn` 에서 일치하더라도 `0` 만 호출된다.  반대로 `/message` URL 형식이라면  `n` 외엔 일치하는 `FilterChain`이 없기 때문에 `n` 이 호출된다.
 
@@ -89,6 +89,6 @@ https://github.com/spring-projects/spring-security/blob/6.3.1/config/src/main/ja
 
 지금 까지 기본적인 Filter 부터 Servlet Filter 그리고 이를 Spring Security Filter 와는 어떻게 활용하는지를 알아 봤다 최종적으로 도식화 한다면 아래와 같을 것이다.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/b6aa6688-5203-4f60-9ac4-aab4569ab07f/Untitled.png)
+![image](https://github.com/Eom-Ti/TIL/assets/71249347/a0d77228-837b-4c6a-a86c-5187fec12b29)
 
 ##
