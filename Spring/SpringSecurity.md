@@ -131,7 +131,7 @@ class SecurityConfig {
 
 위에서 설명한 `SecurityFilterChain` 을 통해 우리는 `인증` 과 관련된 부분을 처리할 수 있으며, 이러한 인증과 관련된 프로세스는 아래와 같은 순서로 진행된다.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/0691d171-0aa9-4dea-a188-d380b8dde6bf/Untitled.png)
+![image](https://github.com/Eom-Ti/TIL/assets/71249347/343f4509-5e48-40c4-8143-d2a7c25c2243)
 
 구체적인 구현을 하기전 우선 각 구성요소들에 대해 간단히 알아보고 시작할 필요가 있다.
 
@@ -141,7 +141,7 @@ Spring Security의 인증 모델의 핵심이며, 여기엔 `SecurityContext` �
 
 `SecurityContextHolder` 에는 인증된 사용자에 대한 세부 정보를 저장하는 곳으로, 값이 포함되어 있으면 현재 인증된 사용자로 사용된다.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/a996f42e-a040-48d0-a3ef-d8ec48183a36/Untitled.png)
+![image](https://github.com/Eom-Ti/TIL/assets/71249347/c3d720d7-01ee-4da5-97cf-cbd0615eba83)
 
 기본적으로 `SecurityContextHolder` 는 `ThreadLocal` 을 사용하여 세부 정보를 저장하기 때문에, 명시적으로 전달되지 않더라도 **동일한 스레드**에 있는 메서드에서 항상 `SecurityContextHolder` 를 사용할 수 있음을 의미한다.
 
