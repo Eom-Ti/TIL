@@ -127,4 +127,94 @@ class SecurityConfig {
 
 간단 하게 위에 대해 설명하자면 현재 해당 프로젝트는 `rest api` 를 이용한 서버로 Session을 사용하지 않는 stateless 한 인증 방식으로 `JWT` 를 사용할 예정이기에 별도로 작성할 필요가 없다. 마찬가지로 `httpBasic` 과 `formLogin` 또한 동일하며, `stateless` 하기에 Session을 사용하지 않는다.
 
-##
+## Autentication Architecutre
+
+위에서 설명한 `SecurityFilterChain` 을 통해 우리는 `인증` 과 관련된 부분을 처리할 수 있으며, 이러한 인증과 관련된 프로세스는 아래와 같은 순서로 진행된다.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/0691d171-0aa9-4dea-a188-d380b8dde6bf/Untitled.png)
+
+구체적인 구현을 하기전 우선 각 구성요소들에 대해 간단히 알아보고 시작할 필요가 있다.
+
+### SecurityContextHolder
+
+Spring Security의 인증 모델의 핵심이며, 여기엔 `SecurityContext` 가 포함되어 있다.
+
+`SecurityContextHolder` 에는 인증된 사용자에 대한 세부 정보를 저장하는 곳으로, 값이 포함되어 있으면 현재 인증된 사용자로 사용된다.
+
+![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/a996f42e-a040-48d0-a3ef-d8ec48183a36/Untitled.png)
+
+기본적으로 `SecurityContextHolder` 는 `ThreadLocal` 을 사용하여 세부 정보를 저장하기 때문에, 명시적으로 전달되지 않더라도 **동일한 스레드**에 있는 메서드에서 항상 `SecurityContextHolder` 를 사용할 수 있음을 의미한다.
+
+### Authentication
+
+`Authentication Iterface`는 Spring Security 내에서 두 가지 주요 용도로 사용된다.
+
+- 사용자가 인증을 위해 제공한 자격 증명을 제공하기 위해 `AuthenticationManager`에 입력 한다.
+- 현재 인증된 사용자를 나타냅니다. `SecurityContext`에서 현재 인증을 가져올 수 있다.
+
+또한 `Authentication Iterface` 는 아래의 3개의 구성요소를 포함하고 있다.
+
+1. `principal` : 사용자를 식별한다.
+2. `credentials` : 비밀번호인 경우가 많다.
+3. `authorities` :  사용자에게 부여되는 상위 수준의 권한이다.
+
+### **GrantedAuthority**
+
+`ROLE_XXX` 와같은 권한에 해당된다. 이러한 권한은 UserName/Password 기반의 인증을 사용할 때 `UserDetailsService`에 의해 로드된다.
+
+### AuthenticationManager
+
+`AuthenticationManager`는 Spring Security의 필터가 인증을 수행하는 방법을 정의하는 API이다.
+
+그런 다음 반환되는 인증은 `SecurityContextHolder`에 저장하여 보안 컨텍스트를 관리한다.
+
+물론 `AuthenticationManager` 를 사용하지 않고 직접 `SecurityContextHolder`에 설정할 수 있다.
+
+`AuthenticationManager`의 구현은 다양할 수 있지만, 가장 일반적인 구현체는 `ProviderManager` 이다.
+
+### ProviderManager
+
+가장 일반적으로 사용되는 `AuthenticationManager` 의 구현체로 `인증성공` `인증실패` `다음 AuthenticationProvier` 에 위임 중 하나를 수행한다.
+
+모든 AuthenticationProvider가 인증을 할 수 없으면, ProviderManager는ProviderNotFoundException 예외를 발생시키며, 이는 제공된 인증 유형을 지원하는 AuthenticationProvider가 없음을 의미 한다.
+
+### **AuthenticationProvider**
+
+`ProviderManager`에 여러 인증 공급자 인스턴스를 삽입할 수 있다. 각 `AuthenticationProvider` 는 특정 유형의 인증을 수행한다. 예를 들어 `DaoAuthenticationProvider`는 사용자 이름/비밀번호 기반 인증을 지원하며, `JwtAuthenticationProvider`는 JWT 토큰 인증을 지원한다.
+
+## 인증구현
+
+사용자를 인증하는 가장 일반적인 방법 중 하나는 `사용자 이름`과 `비밀번호`의 유효성을 검사하는 것이다. Spring Security는 사용자 이름 및 비밀번호 인증을 위한 포괄적인 지원을 제공한다.
+
+관련하여 Srping Security는 여러 인증 방법을 제공하고 있으며, 해당 내용은 아래와 같다.
+
+- I want to [learn how Form Login works](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/form.html)
+- I want to [learn how HTTP Basic authentication works](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/basic.html)
+- I want to [learn how `DaoAuthenticationProvider` works](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/dao-authentication-provider.html)
+- I want to [manage users in memory](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/in-memory.html)
+- I want to [manage users in a database](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/jdbc.html)
+- I want to [manage users in LDAP](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/ldap.html#servlet-authentication-ldap-authentication)
+- I want to [publish an `AuthenticationManager` bean](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/index.html#publish-authentication-manager-bean) for custom authentication
+- I want to [customize the global `AuthenticationManager`](https://docs.spring.io/spring-security/reference/servlet/authentication/passwords/index.html#customize-global-authentication-manager)
+
+이중 `Form Login` 을 사용하여 인증하는 방식을 확인해 볼 예정이며, 각 상황에 따라 여러 인증방법을 구현할 수가 있다. 꼭 위의 방법을 하지 않더라도 여러 구현 방법이 있으며 그러한 방법은 이후에 확인 예정이다
+
+Spring Security는 기본적으로 세션 쿠키 방식의 인증이 이루어 지며, 이때 `UsernamePasswordAuthenticationFilter`  를사용하여 인증을 수행한다. 해당 Filter의 `attemptAuthentication()` 메소드를 보면 `UsernamePasswordAuthenticationToken` 클래스를 생성하는 것을 볼 수 있으며, 이때 인증되지 않은 `Authentication` 을 생성한다.
+
+```kotlin
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
+        if (this.postOnly && !request.getMethod().equals("POST")) {
+            throw new AuthenticationServiceException("Authentication method not supported: " + request.getMethod());
+        } else {
+            String username = this.obtainUsername(request);
+            username = username != null ? username.trim() : "";
+            String password = this.obtainPassword(request);
+            password = password != null ? password : "";
+            UsernamePasswordAuthenticationToken authRequest = UsernamePasswordAuthenticationToken.unauthenticated(username, password);
+            this.setDetails(request, authRequest);
+            return this.getAuthenticationManager().authenticate(authRequest);
+        }
+    }
+```
+
+이후 `Spring Authentication` 프로세스대로 `AutenticationManager` 로 넘어가는 부분을 확인해보자
