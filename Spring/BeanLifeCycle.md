@@ -111,3 +111,37 @@ class BeanTest(
 - *java 6 ~ 8 에선 javax.annotation* package 였으나 이후 9부터는 *javax.annotation* package 하위로 변경되었다.
 - 어노테이션으로 관리가 가능하며, 메소드명 또한 별도로 지정이 간으하다.
 - Spring에 종속적인 기능이 아니다.
+### **설정 정보에 사용자 정의 초기화 메서드, 종료 메서드 지정**
+
+```kotlin
+@Configuration
+class Test {
+
+    @Bean(initMethod = "thisIsInit", destroyMethod = "thisIsDestroy")
+    fun beanTest(): BeanTest {
+        return BeanTest()
+    }
+}
+
+class BeanTest(
+
+) {
+
+    fun thisIsInit() {
+        println("Spring Bean Config init")
+    }
+
+    fun thisIsDestroy() {
+        println("Spring Bean config destroy")
+    }
+}
+```
+
+![image](https://github.com/user-attachments/assets/a666e527-3629-4962-a28c-c9eaf5abe083)
+
+- @Bean 어노테이션에 initMethod, destroyMethod 속성을 사용하여 초기화, 소멸 메서드를 각각 지정한다.
+
+### 특징
+
+- 메소드 명을 자유롭게 부여할 수있고, 스프링 코드에 의존하지 않는다.
+- 설정 정보를 사용하기 때문에 코드를 고칠 수 없는 외부 라이브러리에도 초기화, 종료 메서드를 적용할 수 있다.
