@@ -50,3 +50,30 @@ Spring Framework는 빈 라이프 사이클을 제어하기 위한 다음과 같
 각각의 방법에 대해 더 자세히 알아봅시다.
 
 ### InitializingBean / DisposableBean
+```kotlin
+@Configuration
+class Test {
+
+    @Bean
+    fun beanTest(): BeanTest {
+        return BeanTest()
+    }
+}
+```
+
+```kotlin
+class BeanTest(
+
+): InitializingBean, DisposableBean {
+
+    override fun afterPropertiesSet() {
+        println("Spring InitializingBean afterPropertiesSet")
+    }
+
+    override fun destroy() {
+        println("Spring DisposableBean destroy")
+    }
+}
+```
+
+![image](https://github.com/user-attachments/assets/01273ca3-dfe5-4487-9f44-98bb5433389e)
