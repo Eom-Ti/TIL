@@ -77,3 +77,37 @@ class BeanTest(
 ```
 
 ![image](https://github.com/user-attachments/assets/01273ca3-dfe5-4487-9f44-98bb5433389e)
+- `afterPropertiesSet` 을 통해 초기화 메소드를 사용한다. 의존 관계 주입이 끝난 후 해당 메소드가 호출된다.
+- `destroy` 를 통해 Spring Container가 Bean을 소멸하기 전에 수행한다.
+
+### 특징
+
+- 해당 인터페이스는 스프링 전용 인터페이스로 해당 코드가 인터페이스에 의존한다.
+- 초기화, 소멸 메소드를 오버라이드 하기 때문에 메소드명을 변경할 수 없다
+- 코드를 고칠 수 없는 외부 라이브러리에 적용 불가능하다.
+### @PostConstruct, @PreDestroy 어노테이션
+
+```kotlin
+class BeanTest(
+
+) {
+
+    @PostConstruct
+    fun init() {
+        println("Spring PostConstruct init")
+    }
+
+    @PreDestroy
+    fun destroy() {
+        println("Spring PreDestroy destroy")
+    }
+}
+```
+
+![image](https://github.com/user-attachments/assets/db22566f-2c5a-4e8b-9281-5d68f3c35878)
+
+### 특징
+
+- *java 6 ~ 8 에선 javax.annotation* package 였으나 이후 9부터는 *javax.annotation* package 하위로 변경되었다.
+- 어노테이션으로 관리가 가능하며, 메소드명 또한 별도로 지정이 간으하다.
+- Spring에 종속적인 기능이 아니다.
