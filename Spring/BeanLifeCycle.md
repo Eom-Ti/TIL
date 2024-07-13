@@ -27,7 +27,7 @@ Spring Container는 이런 빈 객체의 생명주기를 컨테이너의 생명�
 
 이를 토대로 간단히 `Bean Life Cycle` 을 요약하면 아래와 같다.
 
-![Untitled](https://prod-files-secure.s3.us-west-2.amazonaws.com/c77a2c20-9831-4c8a-9134-2d59b9750ec2/957cbad8-9597-4203-a492-5189f5f62fa1/Untitled.png)
+![image](https://github.com/user-attachments/assets/10ea87aa-f166-4912-8e1f-97275471a004)
 
 1. Spring Container 생성
 2. Spring Bean 인스턴스화(빈 생성)
