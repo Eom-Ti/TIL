@@ -106,7 +106,10 @@ For each topic T that Ci subscribes to {
    - 할당된 각 파티션 \( p \)에 대해, 소비자 \( Ci \)를 해당 파티션의 소유자로 설정한다.
    - 오프셋 레지스트리에 저장된 파티션 \( p \)의 오프셋 \( Op \)에서부터 데이터를 가져오는 스레드를 시작한다.
 
+## 전달보장
+Kafka는 최소 한 번 전달(at-least-once)를 보장하며, 특정 상황에서는 중복 메시지가 발생할 수 있어 애플리케이션 수준에서 중복제거가 필요하다. 이때 말하는 특정상황으론 컨슈머가 메시지 처리 후 오프셋을 기록하지 못하고 비정상적으로 종료될 경우 다른 컨슈머가 해당 파티션에서 중복된 메시지를 읽는 상황이 발생할 수 있다.
 
+해당 논문에선 브로커 장애 시 소비되지 않은 메시지가 손실될 수 있기에 **향후 복제 기능**을 추가할 계획임을 이야기 하는데 해당 기능은 현재 제공을 하고있으며, `Replication Factor` 가 해당 내용이다.
 
 https://www.google.com/search?q=kafka+vs+rabbitmq+performance+test&sca_esv=dc67e9d40e314a2a&sxsrf=ADLYWILTWnRynGLoZvsJyHbXEQbvHcwrQQ%3A1729884665845&ei=-fEbZ4uoM6Xe1e8P6PeiqQ4&ved=&uact=5&oq=kafka+vs+rabbitmq+performance+test&gs_lp=Egxnd3Mtd2l6LXNlcnAiImthZmthIHZzIHJhYmJpdG1xIHBlcmZvcm1hbmNlIHRlc3QyBRAhGKABMgUQIRigAUiPOVD1BFiyNnAFeAGQAQCYAbABoAHfFaoBBDAuMTi4AQPIAQD4AQH4AQKYAhegApAWwgIKEAAYsAMY1gQYR8ICBBAjGCfCAgoQIxiABBgnGIoFwgIOEC4YgAQYsQMYgwEY1ALCAhEQLhiABBixAxjRAxiDARjHAcICCxAAGIAEGLEDGIMBwgILEC4YgAQYsQMYgwHCAgoQABiABBhDGIoFwgIIEC4YgAQYsQPCAhAQLhiABBjRAxhDGMcBGIoFwgIIEAAYgAQYsQPCAgUQABiABMICDRAAGIAEGLEDGIMBGArCAgcQABiABBgKwgIIEAAYgAQYywHCAgcQIRigARgKmAMAiAYBkAYCkgcENS4xOKAH7Hs&sclient=gws-wiz-serp
 
