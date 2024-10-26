@@ -39,7 +39,7 @@
 | **처리량**             | 고처리량 지원, 대용량 데이터 효율적으로 처리                                       | 파이프라인 전반에 걸쳐 초당 수백 GB 처리; 대규모 스케일을 위해 설계됨                           |
 | **전달 보장**          | 최소 한 번(at-least-once) 전달 보장 제공, 정확히 한 번(exactly-once)은 추가 처리 필요 | 최소 한 번, 최대 한 번(at-most-once) 전달 보장 제공 가능 (플랫폼마다 다름)                 |
 | **장애 허용성**        | 복제와 데이터 중복성을 사용하며 Zookeeper에 의존해 조정 수행                          | 영구적 메시지 버스인 Scribe를 통해 내구성과 장애 허용성 제공                               |
-| **데이터 처리**        | 주로 로그 집계용이나, 소비자 되감기 및 재처리 지원                                   | DAG 구조로 다양한 실시간 처리 기능 지원 (예: 필터링, 집계)                               |
+| **데이터 처리**        | 주로 로그 집계용이나, 컨슈머 되감기 및 재처리 지원                                   | DAG 구조로 다양한 실시간 처리 기능 지원 (예: 필터링, 집계)                               |
 
 ## 카프카 아키텍처
 이러한 전통적인 시스템의 한계로 LinkedIn은 메시징 기반의 로그수집기인 Kafka 시스템을 개발하게됨.
@@ -68,8 +68,43 @@ Kafka는 **효율적인 데이터 전송**을 위해 메시지를 명시적으�
 Kafka는 메시지 소비시 컨슈머 그룹 개념을 사용하며, 이때 각 컨슈머 그룹은 topic내 파티션을 그룹 내의 컨슈머들 끼리 나눠서 처리하며 하나의 컨슈머에만 전달 된다.
 또한 topic 내의 파티션을 병렬 처리의 최소 단위로 설정하여 같은 파티션은 그룹 내에서 한 번에 하나의 컨슈머만 소비하게 한다. 이를 통해 여러 컨슈머 간의 충돌 및 복잡한 조정 과정을 줄이며 조정 과정은 `rebalancing`에서만 발생한다
 
+
 또한 Zookeeper를 통해 Kafka 브로커와 컨슈머 상태를 관리하며 재조정 이벤트를 감지한다. 다만 `Apache Kafka 4.0`에선 주키퍼를 제거할 계획이며 이는 내부적으로 관리되는 메타데이터용 프토로콜인 `카프카 라프트(Kafka Raft)` 또는 `크라프트(KRaft)`로대체될 예정이다.
 
+Kafka에서 새로운 컨슈머가 시작되거나, 브로커/컨슈머 변경 사항이 생기면 컨슈머는 자신이 처리할 파티션을 다시 할당받기 위해 `리밸런스(rebalance)`라는 과정을 거친다. 이때 `Zookeeper`에서 각 주제에 구독된 파티션과 컨슈머 목록을 가져와, 각 컨슈머가 고유하게 처리할 파티션을 나누고 소유권을 설정한다. 설정이 완료되면 컨슈머는 자신이 맡은 파티션에서 데이터를 가져오는 작업을 시작한다.
+컨슈머가 여러 명 있을 경우, 이 알림이 컨슈머마다 약간씩 시간차로 전달될 수 있다. 이로 인해 한 컨슈머가 다른 컨슈머가 소유한 파티션을 차지하려는 경우가 생길 수 있는데, 이때는 먼저 차지하려던 컨슈머가 모든 소유 파티션을 잠시 포기하고 기다린 후 다시 시도하여, 결국 각 파티션의 소유권이 안정적으로 배분된다.
+
+```text
+Algorithm 1: rebalance process for consumer Ci in group G
+For each topic T that Ci subscribes to {
+ remove partitions owned by Ci from the ownership registry
+ read the broker and the consumer registries from Zookeeper
+ compute PT = partitions available in all brokers under topic T
+ compute CT = all consumers in G that subscribe to topic T
+ sort PT and CT
+ let j be the index position of Ci in CT and let N = |PT|/|CT|
+ assign partitions from j*N to (j+1)*N - 1 in PT to consumer Ci
+ for each assigned partition p {
+ set the owner of p to Ci in the ownership registry
+ let Op = the offset of partition p stored in the offset registry
+ invoke a thread to pull data in partition p from offset Op
+ }
+}
+```
+### 알고리즘 설명
+1. **현재 할당된 파티션 해제**: 소비자 \( Ci \)는 자신에게 할당된 파티션을 소유권 레지스트리에서 제거해 초기화한다.
+2. **레지스트리 읽기**: Zookeeper에서 브로커와 소비자 레지스트리를 읽어온다.
+3. **파티션 및 소비자 계산**:
+   - \( PT \): 현재 주제 \( T \)의 모든 브로커에 있는 파티션 집합을 계산한다.
+   - \( CT \): 소비자 그룹 \( G \)에서 주제 \( T \)에 구독된 모든 소비자를 계산한다.
+4. **정렬 및 인덱스 계산**:
+   - 파티션 집합 \( P_T \)와 소비자 집합 \( C_T \)를 정렬한다.
+   - 소비자 \( Ci \)의 인덱스 \( j \)를 구하고, \( N \)을 \( PT \)의 파티션 수를 \( CT \)의 소비자 수로 나눈 값으로 설정한다.
+5. **파티션 할당**:
+   - \( j \times N \)부터 \( (j+1) \times N - 1 \)까지의 파티션을 소비자 \( Ci \)에게 할당한다.
+6. **데이터 가져오기**:
+   - 할당된 각 파티션 \( p \)에 대해, 소비자 \( Ci \)를 해당 파티션의 소유자로 설정한다.
+   - 오프셋 레지스트리에 저장된 파티션 \( p \)의 오프셋 \( Op \)에서부터 데이터를 가져오는 스레드를 시작한다.
 
 
 
