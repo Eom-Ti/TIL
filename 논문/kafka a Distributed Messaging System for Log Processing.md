@@ -46,12 +46,16 @@
 
 ![image](https://github.com/user-attachments/assets/d267c6c1-deac-478e-af69-5ffdd027f25b)
 
-Kafka는 **효율적인 데이터 전송**을 위해 메시지를 명시적으로 메모리에 캐시하지 않고 파일 시스템의 페이지 캐시만 활용하여 중복 버퍼링을 피하면서 메모리 오버헤드를 감소했음. 이는 Kafka 브로커가 재기동 되어도 캐시가 유지되는 장점이 있음.
+Kafka는 **효율적인 데이터 전송**을 위해 메시지를 명시적으로 메모리에 캐시하지 않고 `파일 시스템의 페이지 캐시`만 활용하여 중복 버퍼링을 피하면서 메모리 오버헤드를 감소했음. 이는 Kafka 브로커가 재기동 되어도 캐시가 유지되는 장점이 있음.
 > Kafka는 메모리에 cache를 별도로 구현한 것이 아니라 OS의 페이지 캐시를 사용한다. 따라서, OS가 알아서 서버의 남은 memory를 페이지 캐시로 활용하고, 순차 접근이기 때문에 사용될 것으로 예상되는 페이지들을 미리 캐싱해둔다.(read ahead) 또한, Kafka process가 캐시를 관리하는 것이 아니고 OS가 관리하므로, process를 재시작 하더라도 캐시가 그대로 남아있을 수 있다.
 > 이 과정에서 Kafka 자체가 디스크에 데이터를 저장하는 명령을 따로 내리기보다는 OS의 캐시 관리 방식에 의존한다. 따라서 만일 카프카를 사용하는 경우 카프카를 실행하는 머신에 설정하는 것을 권장하기도 한다.
 > ```text
 >주요 설정에는 vm.swappiness(메모리 스왑 빈도 제어), vm.dirty_ratio 및 vm.dirty_background_ratio(페이지 캐시의 데이터 디스크 플러시 빈도 제어) 등이 있다.
 >```
+https://serverfault.com/questions/1096322/page-cache-in-kafka
+https://www.linuxatemyram.com/
+https://docs.confluent.io/kafka/design/file-system-constant-time.html
+https://www.youtube.com/watch?v=Mo2ubks39Hw
 
 또한 `Consumer` 위해 네트워크 접근을 최적화 하며, 이때 리눅스 및 유닉스 운영체제에서 제공하는 `sendfile API`를 활욯하여 세그먼트 파일의 byte를 효율적으로 전달한다.
 > 기본적으로 디스크의 데이터를 네트워크를 통해 전달하는 원리는 아래와 같다.
