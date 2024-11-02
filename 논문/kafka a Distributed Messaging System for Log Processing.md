@@ -65,7 +65,7 @@ Kafka는 **효율적인 데이터 전송**을 위해 메시지를 명시적으�
 >위과정을 거치면서 실질적으로 데이터 복사는 총 4번(디스크 -> 읽기 버퍼 -> 사용자 공간 -> 소켓버퍼 -> NIC 버퍼) 발생한다. 리눅스는 이를 sendfile Api를 통해 사용자 공간 개입 없이 복사가 가능하다. 참고로 Java API 중 ` java.nio.channels.FileChannel의 transferTo()` 메서드 또한 애플리케이션의 간섭 없이 데이터를 복사하는 기능을 제공한다. 
 >> ![image](https://github.com/user-attachments/assets/054e0715-633a-43d8-aa44-c90174e8db40)
 >
-> 이를 사용해 카프카는 [zero-copy](https://kafka.apache.org/documentation/#maximizingefficiency) 기법을 활용하여 consumer의 읽기 요청에 대한 처리 속도를 향상시킨다. 이 기법은 consumer가 데이터를 요청할 때마다 데이터를 사용자 공간(user space)에 복사하지 않고 읽기 버퍼에 데이터를 저장하여 전달하는 방식으로 이루어 진다.
+> 이를 사용해 카프카는 [zero-copy](https://kafka.apache.org/documentation/#maximizingefficiency) 기법을 활용하여 consumer의 읽기 요청에 대한 처리 속도를 향상시킨다. 이 기법은 consumer가 데이터를 요청할 때마다 데이터를 사용자 공간(user space)에 복사하지 않고 읽기 버퍼에 데이터를 저장하여 전달하는 방식으로 이루어 진다. [참조](https://developer.ibm.com/articles/j-zerocopy/)
 
 위의 내용 이외에도 실질적으로 많은 효율적인 전송 방식이 있으나 이는 우리가 알고있는 내용과 비슷하여 생략하였다. 결론적으로 Kafka 설계중 중요한 부분은 결국 consumer가 이전 오프셋으로 되돌아가 데이터를 다시 읽을 수 있다는 점이며, 이는 ETL(Event Tracing Log) 데이터 로드와 같은 경우 중요한 내용이다.
 
