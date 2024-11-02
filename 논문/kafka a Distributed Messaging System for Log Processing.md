@@ -116,6 +116,22 @@ Kafka는 최소 한 번 전달(at-least-once)를 보장하며, 특정 상황에�
 
 해당 논문에선 브로커 장애 시 소비되지 않은 메시지가 손실될 수 있기에 **향후 복제 기능**을 추가할 계획임을 이야기 하는데 해당 기능은 현재 제공을 하고있으며, `Replication Factor` 가 해당 내용이다.
 
+## LinkedIn의 Kafka
+![image](https://github.com/user-attachments/assets/dd6a124e-1a8d-4aa2-80ad-bad4cc67df45)
+
+카프카는 각 데이터 센터에 클러스터가 배포되어 있으며, 프론트엔드 서비스에서 생성된 로그 데이터를 로컬 Kafka에 전송한다.
+이를 하드웨어 로드벨런서를 사용해 Kafka 브로커 집합에 분배하여 전달하고 온라인 처리는 각 데이터 센터 내에서 이루어지며, 오프라인 분석을 위한 처리는
+Hadoop 클러스터 가까이에 위치하여 데이터를 가져오는 방식이다.
+
+해당 클러스터에선 데이터 로드, 리포팅, 분석등의 작업을 수행한다. 또한 데이터 손실 방지를 위해 메시지 타임스탬프와 서버 이름을 기록 하고, 프로듀서가 정해진 시간 내에 게시한 메시지의 양을 파악할 수 있는 모니터링 이벤트를 통해 컨슈머가 수신한 메시지 수와 프로듀서가 기록한 메시지의 수를 비교하여 데이터 손실을 방지한다.
+
+또한 MapReduce 작업으로 데이터를 HDFS에 저장하며 [Avro](https://blog.techeer.net/%EC%B9%B4%ED%94%84%EC%B9%B4-%EB%A9%94%EC%8B%9C%EC%A7%80%EC%97%90-%EC%8A%A4%ED%82%A4%EB%A7%88%EB%A5%BC-%EC%A0%95%EC%9D%98%ED%95%B4-%EB%B3%B4%EC%9E%90-apache-avro-7162e250ae69) 직렬화 프로토콜을 사용해 스키마의 변화를 관리하고 데이터 호환성을 유지한다.
+>카프카 프로듀서의 필수 구성에는 직렬처리기가 포함된다. String, Integer, ByteArray 직렬처리기가 있지만 이것들로 모든 데이터의 직렬화를 충족시킬 수 없으므로 다른 직렬 처리기가 필요하다. 그래서 커스텀 직렬처리기를 사용할 수 있지만, 타입의 변화가 있거나 필드가 추가 혹은 삭제된다면 기존 메시지와 새로운 메시지 사이에 호환에 문제가 생긴다.
+>
+>이런 이유로 JSON, Apache Avro, Thrift, Protobuf 같은 범용 직렬처리기와 역직렬처리기 사용을 권하고 있다
+
+
+
 https://www.google.com/search?q=kafka+vs+rabbitmq+performance+test&sca_esv=dc67e9d40e314a2a&sxsrf=ADLYWILTWnRynGLoZvsJyHbXEQbvHcwrQQ%3A1729884665845&ei=-fEbZ4uoM6Xe1e8P6PeiqQ4&ved=&uact=5&oq=kafka+vs+rabbitmq+performance+test&gs_lp=Egxnd3Mtd2l6LXNlcnAiImthZmthIHZzIHJhYmJpdG1xIHBlcmZvcm1hbmNlIHRlc3QyBRAhGKABMgUQIRigAUiPOVD1BFiyNnAFeAGQAQCYAbABoAHfFaoBBDAuMTi4AQPIAQD4AQH4AQKYAhegApAWwgIKEAAYsAMY1gQYR8ICBBAjGCfCAgoQIxiABBgnGIoFwgIOEC4YgAQYsQMYgwEY1ALCAhEQLhiABBixAxjRAxiDARjHAcICCxAAGIAEGLEDGIMBwgILEC4YgAQYsQMYgwHCAgoQABiABBhDGIoFwgIIEC4YgAQYsQPCAhAQLhiABBjRAxhDGMcBGIoFwgIIEAAYgAQYsQPCAgUQABiABMICDRAAGIAEGLEDGIMBGArCAgcQABiABBgKwgIIEAAYgAQYywHCAgcQIRigARgKmAMAiAYBkAYCkgcENS4xOKAH7Hs&sclient=gws-wiz-serp
 
 
