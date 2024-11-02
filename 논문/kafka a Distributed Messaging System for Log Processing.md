@@ -66,6 +66,8 @@ Kafka는 **효율적인 데이터 전송**을 위해 메시지를 명시적으�
 >> ![image](https://github.com/user-attachments/assets/054e0715-633a-43d8-aa44-c90174e8db40)
 >
 > 이를 사용해 카프카는 [zero-copy](https://kafka.apache.org/documentation/#maximizingefficiency) 기법을 활용하여 consumer의 읽기 요청에 대한 처리 속도를 향상시킨다. 이 기법은 consumer가 데이터를 요청할 때마다 데이터를 사용자 공간(user space)에 복사하지 않고 읽기 버퍼에 데이터를 저장하여 전달하는 방식으로 이루어 진다. [참조](https://developer.ibm.com/articles/j-zerocopy/)
+> 
+> RabbitMQ의 경우 인덱스 기반 스토리지 시스템을 사용하며, 데이터는 일반적으로 인덱스에 액세스 하여 데이터의 물리적인 위치를 찾은 후 저장 매체에서 메모리로 데이터를 읽어 복사하는 방식이다. 이러한 방식에서 개별 메시지에 대한 빠른 액세스 제공을 위해 데이터를 트리 구조에 보관하며 이러한 트리 구조가 제공하는 빠른 개별 읽기는 쓰기 오버헤드의 비용으로 발생하여 로그 방식인 Kafka에 비해 쓰기 처리량 감소, 쓰기 지연 시간 증가 등으로 나타날 수 있음.
 
 위의 내용 이외에도 실질적으로 많은 효율적인 전송 방식이 있으나 이는 우리가 알고있는 내용과 비슷하여 생략하였다. 결론적으로 Kafka 설계중 중요한 부분은 결국 consumer가 이전 오프셋으로 되돌아가 데이터를 다시 읽을 수 있다는 점이며, 이는 ETL(Event Tracing Log) 데이터 로드와 같은 경우 중요한 내용이다.
 
