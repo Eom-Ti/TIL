@@ -52,10 +52,11 @@ Kafka는 **효율적인 데이터 전송**을 위해 메시지를 명시적으�
 > ```text
 >주요 설정에는 vm.swappiness(메모리 스왑 빈도 제어), vm.dirty_ratio 및 vm.dirty_background_ratio(페이지 캐시의 데이터 디스크 플러시 빈도 제어) 등이 있다.
 >```
-https://serverfault.com/questions/1096322/page-cache-in-kafka
-https://www.linuxatemyram.com/
-https://docs.confluent.io/kafka/design/file-system-constant-time.html
-https://www.youtube.com/watch?v=Mo2ubks39Hw
+
+카프카가 실제 OS의 메모리 영역(페이지 캐시)을 사용하는 것이 OS 메모리에 영향을 주는 것처럼 보일수 있으나, 실질적으로 페이지 캐시가 가득 차는 것은 리눅스 시스템 입장에서 정상적이며, 오히려 더 효율적인 상황이다.
+
+실질적으로 Linux 디스크 캐시는 매우 작은 영역이며, 예비 메모리를 사용하는 것으로 다른 애플리케이션의 메모리를 더 쓰거나 하는 일은 없으며, 오히려 애플리케이션에서 더 많은 메모리가 필요할 경우 디스크 캐시에서 빌린 청크를 다시 가져오는 방식으로 되어 있다. 리눅스 시스템에선 완전히 사용된 RAM은 경고가 아닌 효율적인 하드웨어 사용으로 보고있다.  
+[참조1](https://www.linuxatemyram.com/), [참조2](https://www.linuxatemyram.com/play.html)
 
 또한 `Consumer` 위해 네트워크 접근을 최적화 하며, 이때 리눅스 및 유닉스 운영체제에서 제공하는 `sendfile API`를 활욯하여 세그먼트 파일의 byte를 효율적으로 전달한다.
 > 기본적으로 디스크의 데이터를 네트워크를 통해 전달하는 원리는 아래와 같다.
