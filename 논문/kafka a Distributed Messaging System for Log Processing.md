@@ -168,7 +168,22 @@ Hadoop 클러스터 가까이에 위치하여 데이터를 가져오는 방식�
 - 기술적 최적화: Kafka는 sendfile API를 통해 전송 오버헤드를 줄여 효율성을 더욱 높임.
   ![image](https://github.com/user-attachments/assets/3a10635e-e93b-4506-8b9c-ab74e7638266)
 
-https://www.google.com/search?q=kafka+vs+rabbitmq+performance+test&sca_esv=dc67e9d40e314a2a&sxsrf=ADLYWILTWnRynGLoZvsJyHbXEQbvHcwrQQ%3A1729884665845&ei=-fEbZ4uoM6Xe1e8P6PeiqQ4&ved=&uact=5&oq=kafka+vs+rabbitmq+performance+test&gs_lp=Egxnd3Mtd2l6LXNlcnAiImthZmthIHZzIHJhYmJpdG1xIHBlcmZvcm1hbmNlIHRlc3QyBRAhGKABMgUQIRigAUiPOVD1BFiyNnAFeAGQAQCYAbABoAHfFaoBBDAuMTi4AQPIAQD4AQH4AQKYAhegApAWwgIKEAAYsAMY1gQYR8ICBBAjGCfCAgoQIxiABBgnGIoFwgIOEC4YgAQYsQMYgwEY1ALCAhEQLhiABBixAxjRAxiDARjHAcICCxAAGIAEGLEDGIMBwgILEC4YgAQYsQMYgwHCAgoQABiABBhDGIoFwgIIEC4YgAQYsQPCAhAQLhiABBjRAxhDGMcBGIoFwgIIEAAYgAQYsQPCAgUQABiABMICDRAAGIAEGLEDGIMBGArCAgcQABiABBgKwgIIEAAYgAQYywHCAgcQIRigARgKmAMAiAYBkAYCkgcENS4xOKAH7Hs&sclient=gws-wiz-serp
+## 다른 비교 테스트
+### Kafka vs Rabbit MQ
+- 초당 약 15,000개 메시지 이전
+  - RabbitMQ로 메시지를 보내고 받는데 걸리는 대기 시간이 Kafka에 비해 절반의 수준임.
+  - 일반적으로 Kafka의 Producer, Consumer의 CPU 사용량이 RabbitMQ에 비해 2배가량 높음
+  - Kafka의 경우 디스크에 적극적으로 쓰고 있는 반면 RabbitMQ는 거의 건드리지 않음.
+  - 다만 RabbitMQ의 CPU사용량이 50%에 도달하면 대기시간이 증가하기 시작함.
+  ![image](https://github.com/user-attachments/assets/5780848f-b051-42aa-85b6-dd764369ba3f)
+- 초당 약 15,000개의 메시지
+  - RabbitMQ의 CPU 사용량은 100%에 가깝고 성능도 저하되기 시작하며 지연시간이 늘어나기 시작함.
+    ![image](https://github.com/user-attachments/assets/45331a87-1f08-4b61-81b1-ffe8415ef97a)
+- 초당 약 30,000개의 메시지
+  - RabbitMQ의 Producer와 Consumer는 기본 5초 제한 시간에 도달하기 시작하며 실패하기 시작함.
+  - Kafka의 경우 오래전에 CPU 사용량이 100%에 도달했지만 Latency가 증가하는 것 외 여전히 모든 메시지를 처리할 수 있음.
+  ![image](https://github.com/user-attachments/assets/cb17f28f-4613-46d3-bfe5-5cb817a4e1a1)
 
+Kafka가 Rabbit MQ보다 처리량이 훨씬 높다는 것을 알 수 있음. 다만 기본적으로 Rabbit MQ의 Latency가 훨씬 더 낮음을 알 수 있으며, 이 이유가 Kafka보다 RabbitMQ를 선택하는 주된 이유일 수 있음(유지 관리가 더 간단하고 더 나은 대기시간 성능을 제공함.)
 
-https://www.youtube.com/watch?v=UPkOsXKG4ns
+낮은 대기 시간이 필요한 경우 Rabbit MQ를 선택할 수 있는 지표임. 다만 지속적인 측면 혹은 이후의 처리 과정에서 봤을때 Kafka가 좀 더 안정적인 측면이 드러남.[참조](https://www.youtube.com/watch?v=UPkOsXKG4ns)
