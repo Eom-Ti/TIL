@@ -130,7 +130,43 @@ Hadoop 클러스터 가까이에 위치하여 데이터를 가져오는 방식�
 >
 >이런 이유로 JSON, Apache Avro, Thrift, Protobuf 같은 범용 직렬처리기와 역직렬처리기 사용을 권하고 있다
 
+## 성능 테스트
 
+이 실험에서는 Apache Kafka, Apache ActiveMQ, 그리고 RabbitMQ의 성능을 다양한 조건에서 비교하여 측정함. 각 시스템의 메시지 처리 성능과 효율성을 측정하기 위해 유사한 설정을 적용했으며, 총 천만 개의 메시지를 전송하면서 처리량을 기록함.
+### 실험 환경
+- 하드웨어 설정: 2GHz 8코어 CPU, 16GB 메모리, RAID 10 구성을 가진 6개의 디스크로 구성된 2대의 리눅스 서버를 사용.
+- 네트워크 구성: 두 서버는 1Gb 네트워크 링크로 연결.
+- 배치 크기: Kafka는 배치 사이즈를 1개와 50개로 설정했지만, ActiveMQ와 RabbitMQ는 배치 전송 기능이 부족하여 메시지를 하나씩 전송.
+### 실험 조건
+- 메시지 크기 : 200바이트
+- 프로듀서 테스트 : 비동기 전송을 통해 각 시스템의 브로커가 메시지를 최대한 빠르게 저장하도록 설정
+### 결과 요약
+#### 성능
+- 처리량: Kafka는 배치 크기가 1일 때 초당 약 5만 개의 메시지를, 배치 크기가 50일 때 초당 약 40만 개의 메시지를 처리. 이는 ActiveMQ와 RabbitMQ보다 훨씬 높은 성능으로, 특히 RabbitMQ보다 약 2배 이상 높았음.
+
+
+- 이유: Kafka의 비동기 전송 방식은 브로커의 응답을 기다리지 않고 메시지를 전송함으로써 처리량을 극대화함. 특히 배치 전송 시 프로듀서와 브로커 간 1Gb 네트워크 링크를 거의 포화시킬 정도로 데이터를 빠르게 전송함.
+
+  ![image](https://github.com/user-attachments/assets/f896f745-941e-49f2-8ed1-d79d508473af)
+
+#### 저장 포맷의 효율성
+- 메시지 오버헤드: Kafka의 메시지 오버헤드는 평균 9바이트였으나, ActiveMQ는 144바이트로 훨씬 더 많았음. 이는 ActiveMQ가 Kafka보다 70% 더 많은 저장 공간을 사용하게 했으며, 이는 JMS의 무거운 메시지 헤더와 인덱싱 구조로 인한 것.
+
+
+- 추가 효율성: ActiveMQ는 메시지 메타데이터와 상태 관리를 위해 B-Tree 구조에 접근하며 CPU 자원을 소모하는 반면, Kafka는 효율적인 메시지 저장 방식을 통해 이러한 오버헤드를 줄임.
+
+#### 배치 전송의 효율성
+- Kafka에서 배치 크기를 50으로 설정한 경우, RPC 오버헤드를 줄이고 처리율을 극대화하여 거의 10배 가까운 성능 향상을 이룸.
+
+### 소비자 성능
+- 처리량: Kafka는 초당 22,000개의 메시지를 소비할 수 있었으며, 이는 ActiveMQ와 RabbitMQ보다 4배 이상 높은 수준.
+
+
+- 이유: Kafka는 더 효율적인 저장 포맷을 사용해 브로커에서 컨슈머로 전송되는 바이트 수를 줄였으며, ActiveMQ와 RabbitMQ의 브로커는 각 메시지의 전달 상태를 유지하느라 추가적인 자원을 소모.
+
+
+- 기술적 최적화: Kafka는 sendfile API를 통해 전송 오버헤드를 줄여 효율성을 더욱 높임.
+  ![image](https://github.com/user-attachments/assets/3a10635e-e93b-4506-8b9c-ab74e7638266)
 
 https://www.google.com/search?q=kafka+vs+rabbitmq+performance+test&sca_esv=dc67e9d40e314a2a&sxsrf=ADLYWILTWnRynGLoZvsJyHbXEQbvHcwrQQ%3A1729884665845&ei=-fEbZ4uoM6Xe1e8P6PeiqQ4&ved=&uact=5&oq=kafka+vs+rabbitmq+performance+test&gs_lp=Egxnd3Mtd2l6LXNlcnAiImthZmthIHZzIHJhYmJpdG1xIHBlcmZvcm1hbmNlIHRlc3QyBRAhGKABMgUQIRigAUiPOVD1BFiyNnAFeAGQAQCYAbABoAHfFaoBBDAuMTi4AQPIAQD4AQH4AQKYAhegApAWwgIKEAAYsAMY1gQYR8ICBBAjGCfCAgoQIxiABBgnGIoFwgIOEC4YgAQYsQMYgwEY1ALCAhEQLhiABBixAxjRAxiDARjHAcICCxAAGIAEGLEDGIMBwgILEC4YgAQYsQMYgwHCAgoQABiABBhDGIoFwgIIEC4YgAQYsQPCAhAQLhiABBjRAxhDGMcBGIoFwgIIEAAYgAQYsQPCAgUQABiABMICDRAAGIAEGLEDGIMBGArCAgcQABiABBgKwgIIEAAYgAQYywHCAgcQIRigARgKmAMAiAYBkAYCkgcENS4xOKAH7Hs&sclient=gws-wiz-serp
 
