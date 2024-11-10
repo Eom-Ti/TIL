@@ -1,5 +1,5 @@
 # Kafka: a Distributed Messaging System for Log Processing
-
+https://notes.stephenholiday.com/Kafka.pdf
 ## Introduction
 현대 시스템에서 로그는 상당히 중요한 역할을 하고있으며 한동안 이벤트를 통한 사용자 참여도 추적, 시스템 사용량, 메트릭 분석을 위해 사용됨.
 
